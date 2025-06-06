@@ -1,0 +1,66 @@
+version: '3.8' # Use a specific version
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app # Mount local backend code into container for development
+    env_file:
+      - ./backend/.env # Load environment variables from .env file
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be healthy
+    # Use --reload for development, remove for production
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile # Assuming you have a Dockerfile for frontend
+    ports:
+      - "5173:5173" # Default Vite port
+    volumes:
+      - ./frontend:/app
+      # Prevent node_modules from being overwritten by the volume mount
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      # Pass the backend URL to the frontend container
+      - VITE_API_URL=http://backend:8000/api/v1
+    networks:
+      - app-network
+    # Adjust command based on your frontend setup (e.g., npm run dev)
+    command: npm run dev -- --host # Ensure Vite listens on 0.0.0.0
+
+  db:
+    image: postgres:14-alpine # Use alpine for smaller image size
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres} # Use env var from .env or default
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-stock_management}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-stock_management}"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+    networks:
+      - app-network
+
+volumes:
+  postgres_data: # Define the named volume
+
+networks:
+  app-network: # Define the network
+    driver: bridge
+
