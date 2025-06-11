@@ -4,7 +4,8 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext'; // Import AuthProvider
-import { Toaster } from '@/components/ui/sonner'; // Assuming you use sonner for toasts
+// import { Toaster } from './components/ui/sonner'; // Adjusted import path for Toaster
+import { Toaster } from 'sonner'; // Use Toaster from 'sonner' package if installed
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -16,4 +17,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </Router>
   </React.StrictMode>
 );
+
 
