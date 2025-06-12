@@ -1,10 +1,12 @@
-
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, Calendar, Target } from "lucide-react";
+import { TrendingUp, Calendar, Target, RefreshCw } from "lucide-react";
+import { forecastsAPI } from "../services/api";
 
+// Original mock data for parts we're not updating
 const mockForecastData = [
   { date: '2024-01', actual: 120, predicted: 118, accuracy: 98.3 },
   { date: '2024-02', actual: 98, predicted: 102, accuracy: 96.1 },
@@ -24,9 +26,32 @@ const productForecasts = [
 ];
 
 export function ForecastView() {
+  const [prophetForecast, setProphetForecast] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const overallAccuracy = 97.5;
   const nextMonthDemand = 155;
   const reorderSuggestions = 3;
+
+  // Fetch Prophet forecast data
+  useEffect(() => {
+    fetchProphetForecast();
+  }, []);
+
+  const fetchProphetForecast = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await forecastsAPI.getProphetForecast();
+      setProphetForecast(data);
+    } catch (err) {
+      console.error("Error fetching Prophet forecast:", err);
+      setError("Failed to load forecast data. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTrendBadge = (trend: string) => {
     switch (trend) {
@@ -41,6 +66,16 @@ export function ForecastView() {
     }
   };
 
+  // Format Prophet forecast data for chart
+  const formatProphetData = () => {
+    if (!prophetForecast || prophetForecast.length === 0) return [];
+    
+    return prophetForecast.map(item => ({
+      date: item.ds.substring(0, 7), // Format as YYYY-MM
+      predicted: Math.round(item.yhat),
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -50,9 +85,18 @@ export function ForecastView() {
             Predictive analytics for inventory management
           </p>
         </div>
-        <Button>
-          <TrendingUp className="mr-2 h-4 w-4" />
-          Generate New Forecast
+        <Button onClick={fetchProphetForecast} disabled={loading}>
+          {loading ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Loading...
+            </>
+          ) : (
+            <>
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Generate New Forecast
+            </>
+          )}
         </Button>
       </div>
 
@@ -150,6 +194,45 @@ export function ForecastView() {
         </Card>
       </div>
 
+      {/* Prophet Forecast Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Prophet Forecast</CardTitle>
+          <CardDescription>
+            AI-driven sales forecast using Facebook Prophet
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="text-center p-4 text-red-500">{error}</div>
+          ) : loading ? (
+            <div className="flex justify-center items-center h-[300px]">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : prophetForecast.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={formatProphetData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="predicted" 
+                  stroke="#8b5cf6" 
+                  name="Prophet Forecast"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center p-4 text-muted-foreground">
+              No forecast data available. Click "Generate New Forecast" to create one.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Product-Specific Forecasts */}
       <Card>
         <CardHeader>
@@ -189,3 +272,4 @@ export function ForecastView() {
     </div>
   );
 }
+

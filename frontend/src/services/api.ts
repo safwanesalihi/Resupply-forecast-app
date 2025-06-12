@@ -138,6 +138,12 @@ export const forecastsAPI = {
     const response = await api.post('/forecasts/generate', forecastParams);
     return response.data;
   },
+  
+  // New method to get Prophet forecasts
+  getProphetForecast: async () => {
+    const response = await api.get('/forecasts/prophet/forecast');
+    return response.data;
+  },
 };
 
 // Alerts API

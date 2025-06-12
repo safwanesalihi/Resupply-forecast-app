@@ -13,4 +13,6 @@ pandas>=2.0.0 # Required by Prophet
 requests>=2.31.0 # For Dynamics BC API calls
 apscheduler>=3.10.1 # For background tasks (optional)
 python-dotenv>=1.0.0 # For loading .env files
+matplotlib>=3.7.0 # Required for Prophet visualizations
+openpyxl>=3.1.0 # For Excel file processing
 
